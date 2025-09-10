@@ -14,6 +14,9 @@ var fileStore = require('session-file-store')(session);
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
+var authRouter = require('./routes/auth');
+var pointsRouter = require('./routes/points');
+var statsRouter = require('./routes/stats');
 
 var app = express();
 
@@ -73,6 +76,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
+app.use('/auth', authRouter);     // /auth/signup, /auth/signin, /auth/signout
+app.use('/points', pointsRouter); // /points/update, /points/getPoints, /points/getGrade
+app.use('/stats', statsRouter);   // /stats/update, /stats/getStats, /stats/ranking
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
