@@ -8,6 +8,10 @@ var logger = require('morgan');
 var mongodb = require('mongodb');
 var MongoClient = mongodb.MongoClient;
 
+// 세션 설정
+var session = require('express-session');
+var fileStore = require('session-file-store')(session);
+
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 
@@ -39,6 +43,23 @@ connectDB().catch(err => {
   console.error("초기 DB 연결 실패: " + err);
   process.exit(1);
 });
+
+// 세션 설정
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'session-login',  // 보안을 위해 환경 변수 사용 권장
+  resave: false,
+  saveUninitialized: false, // 세션이 필요할 때만 저장하도록 false로 설정
+  store: new fileStore({
+    path: './sessions', // 세션 파일 저장 경로 지정
+    ttl: 24 * 60 * 60, // 세션 유효기간 1일
+    reapInterval: 60 * 60 // 만료된 세션 정리 간격 1시간
+  }),
+  cookie: {
+    httpOnly: true, // XSS 공격 방지
+    secure: process.env.NODE_ENV === 'production', // HTTPS 환경에서만 쿠키 전송
+    maxAge: 24 * 60 * 60 * 1000 // 쿠키 유효기간 1일
+  }
+}));
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
