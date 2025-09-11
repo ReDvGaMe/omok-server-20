@@ -66,15 +66,15 @@ router.post('/updateGameResult', requireAuth, async function (req, res, next) {
         res.status(200).json({
             message: "게임 결과 기록 성공",
             gameResult: gameResult,
-            stats: {
+            record: {
                 totalGames: newTotalGames,
                 totalWins: newTotalWins,
                 totalLoses: newTotalLoses,
                 winRate: Math.round(winRate * 100) / 100
             },
-            points: {
-                newPoints: pointResult.newPoints,
-                newGrade: pointResult.newGrade,
+            rank: {
+                points: pointResult.points,
+                grade: pointResult.grade,
                 gradeChanged: pointResult.gradeChanged
             }
         });
@@ -85,8 +85,8 @@ router.post('/updateGameResult', requireAuth, async function (req, res, next) {
     }
 })
 
-// 사용자 통계 조회
-router.get('/getStats', requireAuth, async function (req, res, next) {
+// 사용자 전적 조회
+router.get('/getRecord', requireAuth, async function (req, res, next) {
     try {
         // 세션에서 사용자 ID 가져오기
         var userId = req.session.userId;
@@ -99,14 +99,16 @@ router.get('/getStats', requireAuth, async function (req, res, next) {
             return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
         }
         res.status(200).json({
-            id: user._id.toString(),
-            username: user.username,
-            stats: {
+            identity: {
+                id: user._id.toString(),
+                username: user.username,
+                nickname: user.nickname,
+            },
+            record: {
                 totalGames: user.totalGames || 0,
                 totalWins: user.totalWins || 0,
                 totalLoses: user.totalLoses || 0,
                 winRate: user.winRate || 0,
-                lastGameAt: user.lastGameAt || null
             }
         });
     }
@@ -139,13 +141,18 @@ router.get('/ranking', async function (req, res, next) {
         res.json({
             ranking: ranking.map((user, index) => ({
                 rank: index + 1,
-                username: user.username,
-                nickname: user.nickname,
+                identity: {
+                    id: user._id.toString(),
+                    username: user.username,
+                    nickname: user.nickname,
+                },
                 grade: user.grade || 18,
-                totalGames: user.totalGames || 0,
-                totalWins: user.totalWins || 0,
-                totalLoses: user.totalLoses || 0,
-                winRate: user.winRate || 0
+                record: {
+                    totalGames: user.totalGames || 0,
+                    totalWins: user.totalWins || 0,
+                    totalLoses: user.totalLoses || 0,
+                    winRate: user.winRate || 0
+                }
             }))
         });
     }

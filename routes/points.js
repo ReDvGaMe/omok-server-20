@@ -67,8 +67,8 @@ async function updatePointsLogic(userId, gameResult, database) {
 
     return {
         pointChange: point,
-        newPoints: newPoint,
-        newGrade: grade,
+        points: newPoint,
+        grade: grade,
         gradeChanged: grade !== savedGrade,
         user: currentUser
     };
@@ -95,10 +95,9 @@ router.post('/update', requireAuth, async function (req, res, next) {
 
         res.status(200).json({
             message: "포인트 갱신 성공",
-            user: {
-                username: result.user.username,
-                points: result.newPoints,
-                grade: result.newGrade,
+            rank: {
+                points: result.points,
+                grade: result.grade,
                 gradeChanged: result.gradeChanged
             }
         });
@@ -129,9 +128,11 @@ router.get('/getPoints', requireAuth, async function (req, res, next) {
         }
 
         res.json({
-            id: user._id.toString(),
-            username: user.username,
-            nickname: user.nickname,
+            identity: {
+                id: user._id.toString(),
+                username: user.username,
+                nickname: user.nickname,
+            },
             points: user.points || 0
         });
     }
@@ -161,9 +162,11 @@ router.get('/getGrade', requireAuth, async function (req, res, next) {
         }
 
         res.json({
-            id: user._id.toString(),
-            username: user.username,
-            nickname: user.nickname,
+            identity: {
+                id: user._id.toString(),
+                username: user.username,
+                nickname: user.nickname,
+            },
             grade: user.grade || 18
         });
     }
