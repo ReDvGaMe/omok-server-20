@@ -5,11 +5,12 @@ var saltRounds = 10;
 const { ObjectId } = require('mongodb');
 
 
-var ResponseType = {
+var AuthResponseType = {
     SUCCESS: 0,
     INVALID_USERNAME: 1,
     INVALID_PASSWORD: 2,
     DUPLICATED_USERNAME: 3,
+    NOT_LOGGED_IN: 4
 }
 
 // 회원가입
@@ -32,7 +33,8 @@ router.post('/signup', async function (req, res, next) {
         // 사용자 중복 체크
         const existingUser = await users.findOne({ username: username });
         if (existingUser) {
-            return res.status(409).json({ message: "이미 존재하는 사용자 입니다." });
+            // return res.status(409).json({ message: "이미 존재하는 사용자 입니다." });
+            return res.status(409).json({ result: AuthResponseType.DUPLICATED_USERNAME });
         }
 
         // 비밀번호 암호화
@@ -54,7 +56,8 @@ router.post('/signup', async function (req, res, next) {
             createdAt: new Date()
         });
 
-        res.status(201).json({ message: "회원가입 성공" });
+        // res.status(201).json({ message: "회원가입 성공" });
+        res.status(201).json({result: AuthResponseType.SUCCESS} );
     }
     catch (err) {
         console.error("회원 가입 중 오류 발생 : ", err);
@@ -88,14 +91,14 @@ router.post('/signin', async function (req, res, next) {
                 req.session.userId = existingUser._id;
                 req.session.username = existingUser.username;
                 req.session.nickname = existingUser.nickname;
-                res.json({ result: ResponseType.SUCCESS });
+                res.json({ result: AuthResponseType.SUCCESS });
             }
             else {
-                res.status(401).json({ result: ResponseType.INVALID_PASSWORD });
+                res.status(401).json({ result: AuthResponseType.INVALID_PASSWORD });
             }
         }
         else {
-            res.status(401).json({ result: ResponseType.INVALID_USERNAME });
+            res.status(401).json({ result: AuthResponseType.INVALID_USERNAME });
         }
     }
     catch (err) {
