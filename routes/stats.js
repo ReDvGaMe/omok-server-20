@@ -127,6 +127,7 @@ router.get('/ranking', async function (req, res, next) {
             .limit(100) // 상위 100명
             .project({
                 username: 1,
+                nickname: 1,
                 totalGames: 1,
                 totalWins: 1,
                 totalLoses: 1,
@@ -139,6 +140,7 @@ router.get('/ranking', async function (req, res, next) {
             ranking: ranking.map((user, index) => ({
                 rank: index + 1,
                 username: user.username,
+                nickname: user.nickname,
                 grade: user.grade || 18,
                 totalGames: user.totalGames || 0,
                 totalWins: user.totalWins || 0,

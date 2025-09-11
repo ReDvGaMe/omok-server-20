@@ -66,6 +66,7 @@ async function updatePointsLogic(userId, gameResult, database) {
     );
 
     return {
+        pointChange: point,
         newPoints: newPoint,
         newGrade: grade,
         gradeChanged: grade !== savedGrade,
@@ -95,7 +96,6 @@ router.post('/update', requireAuth, async function (req, res, next) {
         res.status(200).json({
             message: "포인트 갱신 성공",
             user: {
-                id: result.user._id.toString(),
                 username: result.user.username,
                 points: result.newPoints,
                 grade: result.newGrade,
