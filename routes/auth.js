@@ -45,8 +45,12 @@ router.post('/signup', async function (req, res, next) {
             password: hash,
             nickname: nickname,
             profileImage: profileImage || null,
-            grade: 18,       // 기본 등급
+            grade: 18,      // 기본 등급
             points: 0,      // 기본 포인트
+            totalGames: 0,
+            totalWins: 0,
+            totalLoses: 0,
+            winRate: 0,
             createdAt: new Date()
         });
 

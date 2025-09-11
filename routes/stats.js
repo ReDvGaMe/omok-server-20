@@ -73,7 +73,6 @@ router.post('/updateGameResult', requireAuth, async function (req, res, next) {
                 winRate: Math.round(winRate * 100) / 100
             },
             points: {
-                pointChange: pointResult.pointChange,
                 newPoints: pointResult.newPoints,
                 newGrade: pointResult.newGrade,
                 gradeChanged: pointResult.gradeChanged

@@ -66,7 +66,6 @@ async function updatePointsLogic(userId, gameResult, database) {
     );
 
     return {
-        pointChange: point,
         newPoints: newPoint,
         newGrade: grade,
         gradeChanged: grade !== savedGrade,
