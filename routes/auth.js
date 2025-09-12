@@ -134,7 +134,8 @@ router.post('/signout', function (req, res, next) {
     }
     else {
         console.log("인증되지 않은 사용자의 로그아웃 시도");
-        res.status(400).json({ message: "로그인 상태가 아닙니다." });
+        // res.status(400).json({ message: "로그인 상태가 아닙니다." });
+        res.status(400).json({ result: AuthResponseType.NOT_LOGGED_IN });
     }
 })
 
