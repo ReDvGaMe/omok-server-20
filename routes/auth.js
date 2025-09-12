@@ -33,8 +33,7 @@ router.post('/signup', async function (req, res, next) {
         // 사용자 중복 체크
         const existingUser = await users.findOne({ username: username });
         if (existingUser) {
-            // return res.status(409).json({ message: "이미 존재하는 사용자 입니다." });
-            return res.status(409).json({ result: AuthResponseType.DUPLICATED_USERNAME });
+            return res.status(409).json({ message: "이미 존재하는 사용자 입니다." }, { result: AuthResponseType.DUPLICATED_USERNAME });
         }
 
         // 비밀번호 암호화
@@ -56,8 +55,7 @@ router.post('/signup', async function (req, res, next) {
             createdAt: new Date()
         });
 
-        // res.status(201).json({ message: "회원가입 성공" });
-        res.status(201).json({result: AuthResponseType.SUCCESS} );
+        res.status(201).json({ message: "회원가입 성공" }, { result: AuthResponseType.SUCCESS });
     }
     catch (err) {
         console.error("회원 가입 중 오류 발생 : ", err);
@@ -94,11 +92,11 @@ router.post('/signin', async function (req, res, next) {
                 res.json({ result: AuthResponseType.SUCCESS });
             }
             else {
-                res.status(401).json({ result: AuthResponseType.INVALID_PASSWORD });
+                res.status(401).json({ message: "비밀번호가 일치하지 않습니다." }, { result: AuthResponseType.INVALID_PASSWORD });
             }
         }
         else {
-            res.status(401).json({ result: AuthResponseType.INVALID_USERNAME });
+            res.status(401).json({ message: "존재하지 않는 사용자입니다." }, { result: AuthResponseType.INVALID_USERNAME });
         }
     }
     catch (err) {
@@ -134,8 +132,7 @@ router.post('/signout', function (req, res, next) {
     }
     else {
         console.log("인증되지 않은 사용자의 로그아웃 시도");
-        // res.status(400).json({ message: "로그인 상태가 아닙니다." });
-        res.status(400).json({ result: AuthResponseType.NOT_LOGGED_IN });
+        res.status(400).json({ message: "로그인 상태가 아닙니다." }, { result: AuthResponseType.NOT_LOGGED_IN });
     }
 })
 
