@@ -8,6 +8,13 @@ var GradePoint = {
     10: 3, 11: 3, 12: 3, 13: 3, 14: 3, 15: 3, 16: 3, 17: 3, 18: 3
 }
 
+var PointsResponseType = {
+    SUCCESS: 0,
+    CANNOT_FOUND_USER: 1,
+    INVALID_GAME_RESULT: 2,
+    NOT_LOGGED_IN: 3
+}
+
 // 인증 확인 미들웨어
 function requireAuth(req, res, next) {
     if (!req.session || !req.session.isAuthenticated) {
@@ -84,7 +91,9 @@ router.post('/update', requireAuth, async function (req, res, next) {
 
         // 입력값 검증
         if (!gameResult || (gameResult !== 'win' && gameResult !== 'lose')) {
-            return res.status(400).json({ message: "유효한 게임 결과를 입력해주세요. ('win' 또는 'lose')" });
+            return res.status(400).json(
+                { message: "유효한 게임 결과를 입력해주세요. ('win' 또는 'lose')" },
+                { result: PointsResponseType.INVALID_GAME_RESULT });
         }
 
         // DB 연결
@@ -124,7 +133,9 @@ router.get('/getPoints', requireAuth, async function (req, res, next) {
         });
         // 데이터 베이스 상에서 유저가 없다면 에러
         if (!user) {
-            return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+            return res.status(404).json(
+                { message: "사용자를 찾을 수 없습니다." },
+                { result: PointsResponseType.CANNOT_FOUND_USER });
         }
 
         res.json({
@@ -158,7 +169,10 @@ router.get('/getGrade', requireAuth, async function (req, res, next) {
         });
         // 데이터 베이스 상에서 유저가 없다면 에러
         if (!user) {
-            return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+            return res.status(404).json(
+                { message: "사용자를 찾을 수 없습니다." },
+                { result: PointsResponseType.CANNOT_FOUND_USER }
+            );
         }
 
         res.json({
