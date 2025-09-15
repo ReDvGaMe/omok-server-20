@@ -15,10 +15,10 @@ const { updatePointsLogic } = require('./points');
 // 인증 확인 미들웨어
 function requireAuth(req, res, next) {
     if (!req.session || !req.session.isAuthenticated) {
-        return res.status(401).json(
-            { message: "로그인이 필요합니다." },
-            { result: StatsResponseType.NOT_LOGGED_IN }
-        );
+        return res.status(401).json({
+            message: "로그인이 필요합니다.",
+            result: StatsResponseType.NOT_LOGGED_IN
+        });
     }
     next();
 }
@@ -32,10 +32,10 @@ router.post('/updateGameResult', requireAuth, async function (req, res, next) {
 
         // 입력값 검증
         if (!gameResult || (gameResult !== 'win' && gameResult !== 'lose')) {
-            return res.status(400).json(
-                { message: "유효한 게임 결과를 입력해주세요. ('win' 또는 'lose')" },
-                { result: StatsResponseType.INVALID_GAME_RESULT }
-            );
+            return res.status(400).json({
+                message: "유효한 게임 결과를 입력해주세요. ('win' 또는 'lose')",
+                result: StatsResponseType.INVALID_GAME_RESULT
+            });
         }
 
         // DB 연결
@@ -45,10 +45,10 @@ router.post('/updateGameResult', requireAuth, async function (req, res, next) {
         // 유저 조회
         const currentUser = await users.findOne({ _id: new ObjectId(userId) });
         if (!currentUser) {
-            return res.status(404).json(
-                { message: "사용자를 찾을 수 없습니다." },
-                { result: StatsResponseType.CANNOT_FOUND_USER }
-            );
+            return res.status(404).json({
+                message: "사용자를 찾을 수 없습니다.",
+                result: StatsResponseType.CANNOT_FOUND_USER
+            });
         }
 
         // 승/패 업데이트
@@ -112,10 +112,10 @@ router.get('/getRecord', requireAuth, async function (req, res, next) {
         // 유저 조회
         const user = await users.findOne({ _id: new ObjectId(userId) });
         if (!user) {
-            return res.status(404).json(
-                { message: "사용자를 찾을 수 없습니다." },
-                { result: StatsResponseType.CANNOT_FOUND_USER }
-            );
+            return res.status(404).json({
+                message: "사용자를 찾을 수 없습니다.",
+                result: StatsResponseType.CANNOT_FOUND_USER
+            });
         }
         res.status(200).json({
             identity: {
