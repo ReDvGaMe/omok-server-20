@@ -101,6 +101,36 @@ router.post('/updateGameResult', requireAuth, async function (req, res, next) {
     }
 })
 
+// 사용자 기본 정보 조회
+router.get('/getUserInfo', requireAuth, async function (req, res, next) {
+    try {
+        // 세션에서 사용자 ID 가져오기
+        var userId = req.session.userId;
+        // DB 연결
+        var database = req.app.get('database');
+        var users = database.collection('users');
+        // 유저 조회
+        const user = await users.findOne({ _id: new ObjectId(userId) });
+        if (!user) {
+            return res.status(404).json({
+                message: "사용자를 찾을 수 없습니다.",
+                result: StatsResponseType.CANNOT_FOUND_USER
+            });
+        }
+        res.status(200).json({
+            id: user._id.toString(),
+            username: user.username,
+            nickname: user.nickname,
+            profileImage: user.profileImage || 0,
+            grade: user.grade || 18,
+        });
+    }
+    catch (err) {
+        console.error("사용자 정보 조회 중 오류 발생 : ", err);
+        res.status(500).json({ message: "서버 오류" });
+    }
+});
+
 // 사용자 전적 조회
 router.get('/getRecord', requireAuth, async function (req, res, next) {
     try {
@@ -153,7 +183,8 @@ router.get('/ranking', async function (req, res, next) {
                 totalWins: 1,
                 totalLoses: 1,
                 winRate: 1,
-                grade: 1
+                grade: 1,
+                profileImage: 1
             })
             .toArray();
 
@@ -166,6 +197,7 @@ router.get('/ranking', async function (req, res, next) {
                     nickname: user.nickname,
                 },
                 grade: user.grade || 18,
+                profileImage: user.profileImage || 0,
                 record: {
                     totalGames: user.totalGames || 0,
                     totalWins: user.totalWins || 0,

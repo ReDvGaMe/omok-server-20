@@ -67,13 +67,18 @@ module.exports = function (server) {
         // 플레이어 2 정보
         const player2 = userSessions.get(socket2.id);
 
+        // 서버에서 랜덤으로 선공 결정
+        const isPlayer1First = Math.random() < 0.5;
+
         // 매칭 성공 알림
         socket1.emit('matchFound', {
             roomId,
             userId: player2.userId,
             username: player2.username,
             nickname: player2.nickname,
-            grade: player2.grade
+            grade: player2.grade,
+            profileImage: player2.profileImage,
+            isPlayer1First: isPlayer1First
         });
 
 
@@ -82,10 +87,13 @@ module.exports = function (server) {
             userId: player1.userId,
             username: player1.username,
             nickname: player1.nickname,
-            grade: player1.grade
+            grade: player1.grade,
+            profileImage: player1.profileImage,
+            isPlayer1First: !isPlayer1First
         });
 
         console.log(`매칭 성공: ${player1.username} vs ${player2.username} (방: ${roomId})`);
+
     }
 
     // 30초마다 매칭 범위 확장
@@ -96,7 +104,8 @@ module.exports = function (server) {
                 const waitTime = Date.now() - player.waitTime;
 
                 // 30초 이상 대기 시 범위 확장
-                if (waitTime > 30000) {
+                if (waitTime > 10000) { // 테스트용으로 10초로 설정, 실제론 30000 (30초)
+                    console.log(`매칭 범위 확장 시도: ${player.username} (등급: ${grade}, 대기시간: ${waitTime}ms)`);
                     const socket1 = io.sockets.sockets.get(player.socketId);
                     if (socket1 && !player.expandedNotified) {
                         socket1.emit('matchExpanded', { message: '매칭 범위가 확장되었습니다.' });
@@ -107,14 +116,14 @@ module.exports = function (server) {
                     if (opponent) {
                         queue.splice(i, 1); // 대기열에서 제거
 
-                        const socket1 = io.sockets.sockets.get(player.socketId);
                         const socket2 = io.sockets.sockets.get(opponent.socketId);
 
                         if (socket1 && socket2) {
                             createGameRoom(socket1, opponent);
                         }
                     }
-                    else if (waitTime > 60000) { // 1분 이상 대기 시 매칭 실패 처리
+                    else if (waitTime > 20000) { // 1분 이상 대기 시 매칭 실패 처리(테스트용으로 20초로 설정)
+                        console.log(`매칭 실패 처리: ${player.username} (등급: ${grade}, 대기시간: ${waitTime}ms)`);
                         if (socket1) {
                             socket1.emit('matchFailed', { message: '매칭 가능한 상대가 없습니다.' });
                         }
@@ -147,6 +156,7 @@ module.exports = function (server) {
                             username: user.username,
                             nickname: user.nickname,
                             grade: user.grade || 18,
+                            profileImage: user.profileImage || 1
                         };
 
                         userSessions.set(socket.id, userInfo);
