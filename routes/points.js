@@ -48,6 +48,7 @@ async function updatePointsLogic(userId, gameResult, database) {
     if (gradePoints === undefined) {
         throw new Error("잘못된 등급입니다.");
     }
+    console.log(`${currentUser.username} 등급: ${grade}, 현재 포인트: ${savedPoint}, 갱신 후 포인트: ${newPoint}, 등급 기준 포인트: ${gradePoints}`);
 
     // 등급에 따른 최소, 최대 포인트
     var minPoint = -gradePoints;
@@ -197,3 +198,4 @@ router.get('/getGrade', requireAuth, async function (req, res, next) {
 
 module.exports = router;
 module.exports.updatePointsLogic = updatePointsLogic; // 함수 export
+module.exports.GradePoint = GradePoint;

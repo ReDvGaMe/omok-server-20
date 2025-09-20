@@ -27,6 +27,7 @@ module.exports = function (server) {
     var matchQueue = new Map();     // grade -> [{ socketId, userId, grade, username, nickname, waitTime }]
     var userSessions = new Map();   // socketId -> { userId, grade, username, nickname }
     var socketRooms = new Map();    // 게임 진행방
+    var gameRooms = new Map(); // roomId -> { players: [socket1, socket2], rematchVotes: Set(), gameInProgress: boolean }
 
     function findOpponentExpanded(myGrade, maxDiff) {
         for (let diff = 1; diff <= maxDiff; diff++) {
@@ -58,9 +59,18 @@ module.exports = function (server) {
         socket1.join(roomId);
         socket2.join(roomId);
 
+        gameRooms.set(roomId, {
+            players: [socket1.id, socket2.id],
+            rematchVotes: new Set(),
+            gameInProgress: true,
+            player1: userSessions.get(socket1.id),
+            player2: userSessions.get(socket2.id)
+        });
+
         // 방 정보 저장
         socketRooms.set(socket1.id, roomId);
         socketRooms.set(socket2.id, roomId);
+
 
         // 플레이어 1 정보
         const player1 = userSessions.get(socket1.id);
@@ -93,7 +103,61 @@ module.exports = function (server) {
         });
 
         console.log(`매칭 성공: ${player1.username} vs ${player2.username} (방: ${roomId})`);
+    }
 
+    function startRematch(roomId) {
+        const room = gameRooms.get(roomId);
+
+        if (!room || room.players.length !== 2) {
+            console.error('리매치 시작 실패: 방 정보 오류');
+            return;
+        }
+
+        if (room.gameInProgress) {
+            console.error(`리매치 중복 실행 방지: 방 ${roomId} 이미 게임이 진행 중입니다.`);
+            return;
+        }
+
+        const socket1 = io.sockets.sockets.get(room.players[0]);
+        const socket2 = io.sockets.sockets.get(room.players[1]);
+
+        if (!socket1 || !socket2) {
+            console.error('리매치 시작 실패: 소켓 연결 오류');
+            return;
+        }
+
+        const player1 = room.player1;
+        const player2 = room.player2;
+
+        // 리매치 상태 초기화
+        room.gameInProgress = true;
+        room.rematchVotes.clear();
+
+        // 선공 결정
+        const isPlayer1First = Math.random() < 0.5;
+
+        // 리매치 시작 알림
+        socket1.emit('rematchStarted', {
+            roomId,
+            userId: player2.userId,
+            username: player2.username,
+            nickname: player2.nickname,
+            grade: player2.grade,
+            profileImage: player2.profileImage,
+            isPlayer1First: isPlayer1First
+        });
+
+        socket2.emit('rematchStarted', {
+            roomId,
+            userId: player1.userId,
+            username: player1.username,
+            nickname: player1.nickname,
+            grade: player1.grade,
+            profileImage: player1.profileImage,
+            isPlayer1First: !isPlayer1First
+        });
+
+        console.log(`리매치 시작: ${room.player1.username} vs ${room.player2.username} (방: ${roomId})`);
     }
 
     // 30초마다 매칭 범위 확장
@@ -259,12 +323,151 @@ module.exports = function (server) {
             }
         });
 
+        // 리매치 투표
+        socket.on('requestRematch', function () {
+            const roomId = socketRooms.get(socket.id);
+            const room = gameRooms.get(roomId);
+
+            if (!room) {
+                socket.emit('rematchError', { message: '방 정보를 찾을 수 없습니다.' });
+                return;
+            }
+
+            if (room.gameInProgress) {
+                console.log(`리매치 요청 무시: 방 ${roomId} 이미 게임 진행 중`);
+                return;
+            }
+
+            if (room.rematchVotes.has(socket.id)) {
+                console.log(`중복 리매치 요청 무시: ${socket.id} (방: ${roomId})`);
+                return;
+            }
+
+            room.rematchVotes.add(socket.id);
+
+            console.log(`리매치 요청: ${socket.id} (방: ${roomId})`);
+            console.log(`현재 투표 수: ${room.rematchVotes.size}/2`);
+
+            // 상대방에게 리매치 요청 알림
+            socket.to(roomId).emit('rematchRequested', {
+                message: '상대방이 재대국을 요청했습니다.'
+            });
+
+            // 본인에게 요청 상태 알림
+            socket.emit('rematchRequestSent', { message: '재대국 요청을 보냈습니다.' });
+
+            // 두 명 모두 리매치 동의 시
+            if (room.rematchVotes.size === 2) {
+                console.log(`리매치 성사: 방 ${roomId}`);
+                startRematch(roomId);
+            }
+        })
+
+        // 리매치 수락
+        socket.on('acceptRematch', function () {
+            const roomId = socketRooms.get(socket.id);
+            const room = gameRooms.get(roomId);
+
+            if (!room) {
+                socket.emit('rematchError', { message: '방 정보를 찾을 수 없습니다.' });
+                return;
+            }
+
+            if (room.gameInProgress) {
+                console.log(`리매치 수락 무시: 방 ${roomId} 이미 게임 진행 중`);
+                return;
+            }
+
+            console.log(`리매치 수락: ${socket.id} (방: ${roomId})`);
+
+            if (room.rematchVotes.size >= 1) {
+                console.log(`리매치 성사: 방 ${roomId}`);
+                startRematch(roomId);
+            } else {
+                console.log(`수락했지만 요청이 없음: 방 ${roomId}`);
+                socket.emit('rematchError', { message: '리매치 요청이 없습니다.' });
+            }
+        });
+
+        // 리매치 거절
+        socket.on('rejectRematch', function () {
+            const roomId = socketRooms.get(socket.id);
+            const room = gameRooms.get(roomId);
+
+            if (!room) return;
+
+            console.log(`리매치 거절: ${socket.id} (방: ${roomId})`);
+
+            // 리매치 투표 초기화
+            room.rematchVotes.clear();
+
+            // 상대방에게 거절 알림
+            socket.to(roomId).emit('rematchRejected', { message: '재대국이 거절되었습니다.' });
+        });
+
+        // 리매치 취소 (요청자가 취소)
+        socket.on('cancelRematch', function () {
+            const roomId = socketRooms.get(socket.id);
+            const room = gameRooms.get(roomId);
+
+            if (!room) return;
+
+            // 본인의 투표만 제거
+            room.rematchVotes.delete(socket.id);
+
+            console.log(`리매치 취소: ${socket.id} (방: ${roomId})`);
+
+            // 상대방에게 취소 알림
+            socket.to(roomId).emit('rematchCanceled', { message: '재대국 요청이 취소되었습니다.' });
+        });
+
+        socket.on('surrender', function () {
+            const roomId = socketRooms.get(socket.id);
+            const room = gameRooms.get(roomId);
+
+            if (!room) {
+                socket.emit('surrenderError', { message: '방 정보를 찾을 수 없습니다.' });
+                return;
+            }
+
+            if (!room.gameInProgress) {
+                socket.emit('surrenderError', { message: '게임이 진행 중이 아닙니다.' });
+                return;
+            }
+
+            const surrenderer = userSessions.get(socket.id);
+            console.log(`항복: ${surrenderer.username} (방: ${roomId})`);
+
+            // 게임 상태 업데이트
+            room.gameInProgress = false;
+            room.rematchVotes.clear();
+
+            // 상대방에게 승리 알림
+            socket.to(roomId).emit('opponentSurrender', { message: `상대방이 항복했습니다.` });
+
+            console.log(`항복 처리 완료: ${surrenderer.username} 항복`);
+        });
+
         socket.on('leaveRoom', function () {
             var roomId = socketRooms.get(socket.id);
             socket.leave(roomId);
             socket.emit('exitRoom', { roomId: roomId });
             socket.to(roomId).emit('opponentLeft', { roomId: roomId });
             socketRooms.delete(socket.id);
+        });
+
+        // 게임 종료 이벤트 (클라이언트에서 호출)
+        socket.on('gameEnded', function () {
+            const roomId = socketRooms.get(socket.id);
+            const room = gameRooms.get(roomId);
+
+            if (!room) return;
+
+            console.log(`게임 종료: 방 ${roomId}`);
+
+            // 게임 진행 상태 변경
+            room.gameInProgress = false;
+            room.rematchVotes.clear(); // 혹시라도 남아있을 수 있는 투표 초기화
         });
 
         socket.on('doPlayer', function (playerInfo) {
@@ -302,6 +505,13 @@ module.exports = function (server) {
 
             // 세션 정리
             userSessions.delete(socket.id);
+            socketRooms.delete(socket.id);
+        });
+
+        // 클라이언트에서 애플리케이션 종료 시 호출
+        socket.on('applicationQuit', function () {
+            var roomId = socketRooms.get(socket.id);
+            socket.leave(roomId);
             socketRooms.delete(socket.id);
         });
     });

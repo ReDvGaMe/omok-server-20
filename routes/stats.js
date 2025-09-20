@@ -10,7 +10,7 @@ var StatsResponseType = {
 }
 
 // points.js에서 함수 import
-const { updatePointsLogic } = require('./points');
+const { updatePointsLogic, GradePoint } = require('./points');
 
 // 인증 확인 미들웨어
 function requireAuth(req, res, next) {
@@ -28,12 +28,12 @@ router.post('/updateGameResult', requireAuth, async function (req, res, next) {
     try {
         // 세션에서 사용자 ID 가져오기
         var userId = req.session.userId;
-        var gameResult = req.body.gameResult; // 'win' 또는 'lose'
+        var gameResult = req.body.gameResult; // 'win' 또는 'lose' 또는 'draw'
 
         // 입력값 검증
-        if (!gameResult || (gameResult !== 'win' && gameResult !== 'lose')) {
+        if (!gameResult || (gameResult !== 'win' && gameResult !== 'lose' && gameResult !== 'draw')) {
             return res.status(400).json({
-                message: "유효한 게임 결과를 입력해주세요. ('win' 또는 'lose')",
+                message: "유효한 게임 결과를 입력해주세요. ('win' 또는 'lose' 또는 'draw')",
                 result: StatsResponseType.INVALID_GAME_RESULT
             });
         }
@@ -91,7 +91,8 @@ router.post('/updateGameResult', requireAuth, async function (req, res, next) {
             rank: {
                 points: pointResult.points,
                 grade: pointResult.grade,
-                gradeChanged: pointResult.gradeChanged
+                gradeChanged: pointResult.gradeChanged,
+                maxPointsForGrade: GradePoint[pointResult.grade] || GradePoint[18]
             }
         });
     }
